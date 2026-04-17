@@ -117,17 +117,33 @@
       flex: 0 0 auto;
     }
 
-    .search-toggle {
+    .search-toggle-wrap {
       position: absolute;
       z-index: 1001;
       top: 70px;
       right: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.97);
+      border: 1px solid #bbb;
+      border-radius: 10px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+      padding: 4px 8px 4px 4px;
+    }
+
+    .search-toggle-label {
+      font-size: 14px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .search-toggle {
       width: 44px;
       height: 44px;
       border: 1px solid #bbb;
       border-radius: 10px;
-      background: rgba(255,255,255,0.97);
-      box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+      background: #fff;
       cursor: pointer;
       font-size: 22px;
     }
@@ -206,7 +222,7 @@
     }
 
     .search-result-item {
-      padding: 6px 4px;
+      padding: 8px 4px;
       border-bottom: 1px solid #eee;
       cursor: pointer;
     }
@@ -215,16 +231,17 @@
       background: #f3f3f3;
     }
 
-    .search-result-title {
-      font-weight: bold;
-      font-size: 14px;
-    }
-
-    .search-result-sub {
-      font-size: 12px;
-      color: #555;
+    .search-result-line {
+      font-size: 13px;
+      color: #333;
       margin-top: 2px;
       word-break: break-word;
+    }
+
+    .search-result-line:first-child {
+      margin-top: 0;
+      font-weight: bold;
+      font-size: 14px;
     }
 
     .custom-marker {
@@ -360,9 +377,15 @@
         font-size: 13px;
       }
 
-      .search-toggle {
+      .search-toggle-wrap {
         top: 60px;
         right: 8px;
+        gap: 6px;
+        padding: 4px 6px 4px 4px;
+      }
+
+      .search-toggle-label {
+        font-size: 12px;
       }
 
       .search-panel {
@@ -396,11 +419,14 @@
   <div id="mapTitle" class="map-header-box">
     <img class="header-icon" src="icons/header-left.png" alt="">
     <span id="mapTitleText"></span>
-    <img class="header-icon" src="icons/header-right.png" alt="">
+    <img class="header-icon" src="iconsheader-left.png" alt="">
   </div>
 </div>
 
-<button id="searchToggle" class="search-toggle" title="חיפוש">🔍</button>
+<div class="search-toggle-wrap">
+  <span class="search-toggle-label">חיפוש יעל</span>
+  <button id="searchToggle" class="search-toggle" title="חיפוש">🔍</button>
+</div>
 
 <div id="searchPanel" class="search-panel">
   <div id="searchHeader" class="search-header">
@@ -411,7 +437,7 @@
     </div>
   </div>
 
-  <input id="searchInput" type="text" placeholder="חיפוש לפי שם, Badge, מזהה, FB, תאריך..." />
+  <input id="searchInput" type="text" placeholder="חיפוש לפי שם, Badge, מזהה, פייסבוק, תאריך..." />
 
   <label class="search-exact">
     <input id="exactSearch" type="checkbox" />
@@ -442,13 +468,13 @@
 
   const KML_FILES = [
     { label: '0', file: 'kml/0.kml', visible: true },
-    { label: '1-1499', file: 'kml/1-1499.kml', visible: false },
-    { label: '1500-2999', file: 'kml/1500-2999.kml', visible: false },
-    { label: '3000-4499', file: 'kml/3000-4499.kml', visible: false },
-    { label: '4500-5999', file: 'kml/4500-5999.kml', visible: false },
-    { label: '6000-7499', file: 'kml/6000-7499.kml', visible: false },
-    { label: '7500-8999', file: 'kml/7500-8999.kml', visible: false },
-    { label: '9000-10499', file: 'kml/9000-10499.kml', visible: false }
+    { label: '1-1499', file: 'kml/1-1499.kml', visible: true },
+    { label: '1500-2999', file: 'kml/1500-2999.kml', visible: true },
+    { label: '3000-4499', file: 'kml/3000-4499.kml', visible: true },
+    { label: '4500-5999', file: 'kml/4500-5999.kml', visible: true },
+    { label: '6000-7499', file: 'kml/6000-7499.kml', visible: true },
+    { label: '7500-8999', file: 'kml/7500-8999.kml', visible: true },
+    { label: '9000-10499', file: 'kml/9000-10499.kml', visible: true }
   ];
 
   const map = L.map('map', { preferCanvas: true }).setView([31.5, 34.8], 7);
@@ -534,8 +560,13 @@
 
     const links = temp.querySelectorAll('a');
     links.forEach((a) => {
+      const href = a.getAttribute('href') || '';
       a.setAttribute('target', '_blank');
       a.setAttribute('rel', 'noopener noreferrer');
+
+      if (/facebook\.com/i.test(href)) {
+        a.textContent = 'פייסבוק';
+      }
     });
 
     return temp.innerHTML;
@@ -595,9 +626,28 @@
     }
   }
 
+  function extractSearchLines(name, descriptionText) {
+    const lines = [];
+    if (name) lines.push(name);
+
+    const parts = descriptionText
+      .split(/\n+/)
+      .map(x => x.trim())
+      .filter(Boolean);
+
+    for (const p of parts) {
+      if (/^https?:\/\//i.test(p)) continue;
+      if (/facebook\.com/i.test(p)) continue;
+      lines.push(p);
+      if (lines.length >= 4) break;
+    }
+
+    return lines;
+  }
+
   function renderSearchResults(items) {
     if (!items.length) {
-      searchResultsEl.innerHTML = '<div class="search-result-sub">לא נמצאו תוצאות</div>';
+      searchResultsEl.innerHTML = '<div class="search-result-line">לא נמצאו תוצאות</div>';
       return;
     }
 
@@ -607,11 +657,11 @@
       const row = document.createElement('div');
       row.className = 'search-result-item';
 
-      row.innerHTML = `
-        <div class="search-result-title">${escapeHtml(item.name || 'ללא שם')}</div>
-        <div class="search-result-sub">${escapeHtml(item.layerLabel)}</div>
-        <div class="search-result-sub">${escapeHtml(item.searchText.slice(0, 180))}</div>
-      `;
+      const lines = extractSearchLines(item.name, item.descriptionText);
+
+      row.innerHTML = lines
+        .map(line => `<div class="search-result-line">${escapeHtml(line)}</div>`)
+        .join('');
 
       row.addEventListener('click', () => {
         ensureLayerVisible(item.layerLabel);
@@ -656,8 +706,6 @@
       const block = document.createElement('div');
       block.className = 'layer-block';
 
-      const itemsId = 'items-' + layerInfo.label.replace(/[^a-zA-Z0-9_-]/g, '_');
-
       block.innerHTML = `
         <div class="layer-row">
           <div class="layer-title">${escapeHtml(layerInfo.label)} (${layerInfo.items.length})</div>
@@ -666,7 +714,7 @@
             <button data-action="toggle-items">יעלים</button>
           </div>
         </div>
-        <div id="${itemsId}" class="layer-items"></div>
+        <div class="layer-items"></div>
       `;
 
       const itemsDiv = block.querySelector('.layer-items');
@@ -764,6 +812,7 @@
         lat: coord.lat,
         lon: coord.lon,
         marker,
+        descriptionText,
         searchText,
         searchTextLower: searchText.toLowerCase()
       };
@@ -882,10 +931,10 @@
       document.removeEventListener('pointerup', onPointerUp);
     }
 
-    searchHeader.addEventListener('pointerdown', (e) => {
+    searchHeader.addEventListener('pointerdown', () => {
       isDragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
+      startX = event.clientX;
+      startY = event.clientY;
       startRight = getRightPx(searchPanel);
       startTop = getTopPx(searchPanel);
 
